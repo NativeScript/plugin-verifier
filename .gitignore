@@ -8,6 +8,7 @@ yarn-error.log*
 *.map
 *.d.ts
 test
+testGit
 
 # Runtime data
 pids

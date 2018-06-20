@@ -1,23 +1,28 @@
 import { exec } from 'child_process';
 import { MarketplaceService } from './marketplace.service';
-import { existsSync, mkdir, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdir, readFileSync } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 
-const testDirectory = 'test';
-export namespace ProjectService {
+const testDirectory = 'testGit';
+export namespace GithubService {
 
     export async function testPlugin(plugin: MarketplaceService.PluginModel) {
+        if (!plugin || !plugin.badges || !plugin.badges.demos) {
+            console.error('plugin has no demos badge');
+            return false;
+        }
+
         try {
             await _checkTestDirectory();
             let projectName = 'test' + plugin.name;
             // NativeScript max project name length
             projectName = projectName.substr(0, 30);
-            await _createProject(projectName);
-            await _installPlugin(plugin.name, projectName, _isDev(plugin.name));
+            await _cloneProject(plugin.repositoryUrl, projectName);
             const platform = _getPlatform(plugin);
+            const demoDir = _getDemoDir(path.join(testDirectory, projectName), plugin);
             if (platform) {
-                const result = await _buildProject(projectName, platform);
+                const result = await _buildProject(demoDir, platform);
                 return result;
             } else {
                 console.error('plugin has no platform');
@@ -28,9 +33,32 @@ export namespace ProjectService {
         return false;
     }
 
+    function _getDemoDir(name: string, plugin: MarketplaceService.PluginModel) {
+        const dirs = ['demo', 'demo-ts', 'demo-angular', 'demo-ng', 'ng-demo', 'demo-vue'];
+        for (let index = 0; index < dirs.length; index++) {
+            const element = dirs[index];
+            if (existsSync(path.join(name, element))) {
+                name = path.join(name, element);
+                break;
+            }
+        }
+
+        return name;
+    }
+
     async function _buildProject(name: string, platform: string) {
-        console.debug(`building project for ${platform} ...`);
-        const result = await _execPromise(name, `tns build ${platform} --bundle`);
+        // TODO: run "tns update" / detect and build webpack
+        console.debug(`building project in ${name} for ${platform} ...`);
+        // let pkgFile: any;
+        // const pkgFileStr = readFileSync(path.join(name, 'package.json'), 'utf8');
+        // pkgFile = JSON.parse(pkgFileStr);
+        // if (!pkgFile) return false;
+
+        // if there is a plugin build script, execute it
+        await _execPromise(name, `npm run build.plugin --if-present`);
+
+        await _execPromise(name, 'npm i');
+        const result = await _execPromise(name, `tns build ${platform}`);
         return result;
     }
 
@@ -39,49 +67,13 @@ export namespace ProjectService {
         return platform;
     }
 
-    function _isDev(name: string): boolean {
-        return name && name.indexOf('-dev-') !== -1;
-    }
-
-    async function _installPlugin(name: string, projectName: string, isDev: boolean) {
-        console.debug(`installing ${name} plugin ...`);
-        const command = isDev ? `npm i ${name} --save-dev` : `tns plugin add ${name}`;
-        await _execPromise(projectName, command);
-        if (!isDev) {
-            // Install webpack, modify project to include plugin code
-            await _execPromise(projectName, 'npm i --save-dev nativescript-dev-webpack');
-            await _execPromise(projectName, 'npm i');
-            _modifyProject(path.join(testDirectory, projectName), name);
-        }
-    }
-
-    function _modifyProject(appRoot: string, name: string) {
-        const mainTsPath = path.join(appRoot, 'app', 'main-view-model.ts')
-        let mainTs = readFileSync(mainTsPath, 'utf8');
-        mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
-        mainTs = mainTs.replace('public onTap() {', 'public onTap() {\nfor (let testExport in testPlugin) {console.log(testExport);}\n');
-        if (mainTs.indexOf('testExport') === -1) {
-            throw new Error('Template content has changed! Plugin test script needs to be updated.')
-        }
-        writeFileSync(mainTsPath, mainTs, 'utf8');
-    }
-
-    async function _createProject(name: string) {
-        /*
-            Local tgz template vs installing from npm:
-            local
-                1:22 min for tns create
-                2:18 min for tns build
-            from npm (preferred)
-                0:14 min for tns create
-                1:42 min for tns build
-        */
-        console.debug(`creating project ${name} ...`);
-        await _execPromise(null, `tns create ${name} --tsc`);
+    async function _cloneProject(repositoryUrl: string, name: string) {
+        console.debug(`cloning into ${name} ...`);
+        await _execPromise(null, `git clone ${repositoryUrl} ${name}`);
     }
 
     function _execPromise(project: string, command: string) {
-        const cwd = project ? path.join(testDirectory, project) : testDirectory;
+        const cwd = project ? project : testDirectory;
         const cp = exec(command, { cwd: cwd });
 
         return new Promise((resolve, reject) => {

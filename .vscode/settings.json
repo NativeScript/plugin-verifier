@@ -2,5 +2,22 @@
     "cSpell.words": [
         "nspluginchecker"
     ],
+    "cSpell.ignorePaths": [
+        "**/package-lock.json",
+        "**/node_modules/**",
+        "**/vscode-extension/**",
+        "**/.git/**",
+        ".vscode",
+        "typings",
+        "testGit",
+        "test"
+    ],
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/test/*/**": true,
+        "**/testGit/*/**": true
+    },
     "eslint.enable": false
 }
