@@ -1,15 +1,16 @@
-import { exec } from 'child_process';
 import { MarketplaceService } from './marketplace.service';
 import { existsSync, mkdir, readFileSync } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
+import { Logger } from './log.service';
+import execPromise from './execPromise';
 
 const testDirectory = 'testGit';
 export namespace GithubService {
 
     export async function testPlugin(plugin: MarketplaceService.PluginModel) {
         if (!plugin || !plugin.badges || !plugin.badges.demos) {
-            console.error('plugin has no demos badge');
+            Logger.error('plugin has no demos badge');
             return false;
         }
 
@@ -25,10 +26,10 @@ export namespace GithubService {
                 const result = await _buildProject(demoDir, platform);
                 return result;
             } else {
-                console.error('plugin has no platform');
+                Logger.error('plugin has no platform');
             }
         } catch (errExec) {
-            console.error(JSON.stringify(errExec));
+            Logger.error(JSON.stringify(errExec));
         }
         return false;
     }
@@ -48,17 +49,17 @@ export namespace GithubService {
 
     async function _buildProject(name: string, platform: string) {
         // TODO: run "tns update" / detect and build webpack
-        console.debug(`building project in ${name} for ${platform} ...`);
+        Logger.debug(`building project in ${name} for ${platform} ...`);
         // let pkgFile: any;
         // const pkgFileStr = readFileSync(path.join(name, 'package.json'), 'utf8');
         // pkgFile = JSON.parse(pkgFileStr);
         // if (!pkgFile) return false;
 
         // if there is a plugin build script, execute it
-        await _execPromise(name, `npm run build.plugin --if-present`);
+        await execPromise(name, `npm run build.plugin --if-present`);
 
-        await _execPromise(name, 'npm i');
-        const result = await _execPromise(name, `tns build ${platform}`);
+        await execPromise(name, 'npm i');
+        const result = await execPromise(name, `tns build ${platform}`);
         return result;
     }
 
@@ -68,34 +69,14 @@ export namespace GithubService {
     }
 
     async function _cloneProject(repositoryUrl: string, name: string) {
-        console.debug(`cloning into ${name} ...`);
-        await _execPromise(null, `git clone ${repositoryUrl} ${name}`);
-    }
-
-    function _execPromise(project: string, command: string) {
-        const cwd = project ? project : testDirectory;
-        const cp = exec(command, { cwd: cwd });
-
-        return new Promise((resolve, reject) => {
-            cp.addListener('error', reject);
-            cp.addListener('exit', (code, signal) => {
-                resolve(code === 0);
-            });
-            let hasError = false;
-            cp.stderr.on('data', function (data) {
-                if (!hasError) {
-                    console.error(`error while executing ${command}:`);
-                    hasError = true;
-                }
-                console.error(data);
-            });
-        });
+        Logger.debug(`cloning into ${name} ...`);
+        await execPromise(testDirectory, `git clone ${repositoryUrl} ${name}`);
     }
 
     async function _checkTestDirectory() {
         if (existsSync(testDirectory)) {
             return new Promise((resolve, reject) => {
-                console.debug(`removing ${testDirectory} project root`);
+                Logger.debug(`removing ${testDirectory} project root`);
                 rimraf(testDirectory, errR => {
                     if (errR) {
                         return reject(errR);
@@ -111,7 +92,7 @@ export namespace GithubService {
     }
 
     async function _createTestDirectory() {
-        console.debug(`creating ${testDirectory} project root`);
+        Logger.debug(`creating ${testDirectory} project root`);
         return new Promise((resolve, reject) => {
             mkdir(testDirectory, errM => {
                 return errM ? reject(errM) : resolve();

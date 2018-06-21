@@ -1,8 +1,9 @@
-import { exec } from 'child_process';
 import { MarketplaceService } from './marketplace.service';
 import { existsSync, mkdir, readFileSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
+import { Logger } from './log.service';
+import execPromise from './execPromise';
 
 const testDirectory = 'test';
 export namespace ProjectService {
@@ -20,17 +21,18 @@ export namespace ProjectService {
                 const result = await _buildProject(projectName, platform);
                 return result;
             } else {
-                console.error('plugin has no platform');
+                Logger.error('plugin has no platform');
             }
         } catch (errExec) {
-            console.error(JSON.stringify(errExec));
+            Logger.error(JSON.stringify(errExec));
         }
         return false;
     }
 
-    async function _buildProject(name: string, platform: string) {
-        console.debug(`building project for ${platform} ...`);
-        const result = await _execPromise(name, `tns build ${platform} --bundle`);
+    async function _buildProject(projectName: string, platform: string) {
+        Logger.debug(`building project for ${platform} ...`);
+        const cwd = path.join(testDirectory, projectName);
+        const result = await execPromise(cwd, `tns build ${platform} --bundle`);
         return result;
     }
 
@@ -44,14 +46,15 @@ export namespace ProjectService {
     }
 
     async function _installPlugin(name: string, projectName: string, isDev: boolean) {
-        console.debug(`installing ${name} plugin ...`);
+        Logger.debug(`installing ${name} plugin ...`);
+        const cwd = path.join(testDirectory, projectName);
         const command = isDev ? `npm i ${name} --save-dev` : `tns plugin add ${name}`;
-        await _execPromise(projectName, command);
+        await execPromise(cwd, command);
         if (!isDev) {
             // Install webpack, modify project to include plugin code
-            await _execPromise(projectName, 'npm i --save-dev nativescript-dev-webpack');
-            await _execPromise(projectName, 'npm i');
-            _modifyProject(path.join(testDirectory, projectName), name);
+            await execPromise(cwd, 'npm i --save-dev nativescript-dev-webpack');
+            await execPromise(cwd, 'npm i');
+            _modifyProject(cwd, name);
         }
     }
 
@@ -76,34 +79,14 @@ export namespace ProjectService {
                 0:14 min for tns create
                 1:42 min for tns build
         */
-        console.debug(`creating project ${name} ...`);
-        await _execPromise(null, `tns create ${name} --tsc`);
-    }
-
-    function _execPromise(project: string, command: string) {
-        const cwd = project ? path.join(testDirectory, project) : testDirectory;
-        const cp = exec(command, { cwd: cwd });
-
-        return new Promise((resolve, reject) => {
-            cp.addListener('error', reject);
-            cp.addListener('exit', (code, signal) => {
-                resolve(code === 0);
-            });
-            let hasError = false;
-            cp.stderr.on('data', function (data) {
-                if (!hasError) {
-                    console.error(`error while executing ${command}:`);
-                    hasError = true;
-                }
-                console.error(data);
-            });
-        });
+        Logger.debug(`creating project ${name} ...`);
+        await execPromise(testDirectory, `tns create ${name} --tsc`);
     }
 
     async function _checkTestDirectory() {
         if (existsSync(testDirectory)) {
             return new Promise((resolve, reject) => {
-                console.debug(`removing ${testDirectory} project root`);
+                Logger.debug(`removing ${testDirectory} project root`);
                 rimraf(testDirectory, errR => {
                     if (errR) {
                         return reject(errR);
@@ -119,7 +102,7 @@ export namespace ProjectService {
     }
 
     async function _createTestDirectory() {
-        console.debug(`creating ${testDirectory} project root`);
+        Logger.debug(`creating ${testDirectory} project root`);
         return new Promise((resolve, reject) => {
             mkdir(testDirectory, errM => {
                 return errM ? reject(errM) : resolve();
