@@ -12,12 +12,37 @@ interface resultsInterface {
     demoTime: number;
 }
 
-export async function run() {
-    const tnsVersion:string  = await execPromise('.', 'tns --version', true) as string;
+class outputModel {
+    data: Array<resultsInterface>;
+    time: number;
+    tnsVersion: string;
+    nodeVersion: string;
+    npmVersion: string;
+}
+
+async function _setup(out: outputModel) {
+    const tnsVersion: string = await execPromise('.', 'tns --version', true) as string;
     const npmVersion = await execPromise('.', 'npm --version', true) as string;
-    const plugins = await MarketplaceService.getPopularPlugins();
-    console.log(`received ${plugins.length} plugins from Marketplace`);
+    out.time = new Date().getTime();
+    out.tnsVersion = tnsVersion.trim();
+    out.nodeVersion = process.version;
+    out.npmVersion = npmVersion.trim();
+}
+
+export async function run() {
     const results: Array<resultsInterface> = [];
+    const output = new outputModel();
+    await _setup(output);
+    const args = process.argv;
+    let skip = 0, take = 10;
+    if (args.length > 2) {
+        skip = parseInt(args[2], 10);
+    }
+    if (args.length > 3) {
+        take = parseInt(args[3], 10);
+    }
+    const plugins = await MarketplaceService.getPlugins(skip,take);
+    console.log(`Asked for ${take} plugins starting from ${skip}. Received ${plugins.length} results.`);
 
     for (let index = 0; index < plugins.length; index++) {
         const plugin = plugins[index];
@@ -39,13 +64,6 @@ export async function run() {
         console.log(JSON.stringify(results[results.length - 1]));
     }
 
-    const output = {
-        data: results,
-        time: new Date().getTime(),
-        tnsVersion: tnsVersion.trim(),
-        nodeVersion: process.version,
-        npmVersion: npmVersion.trim()
-    }
-
+    output.data = results;
     writeFileSync('results.json', JSON.stringify(output, null, 4), 'utf8');
 }

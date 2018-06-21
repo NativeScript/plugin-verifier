@@ -20,9 +20,9 @@ export namespace MarketplaceService {
         badges: any;
     }
 
-    export async function getPopularPlugins() {
+    export async function getPlugins(skip: number, take: number) {
         const options = {
-            uri: util.format(marketplaceApiUrl, 0, pluginCount),
+            uri: util.format(marketplaceApiUrl, skip, take),
             headers: {
                 'Accept': 'application/json',
                 'User-Agent': 'nspluginchecker'
