@@ -8,9 +8,10 @@
     "name": "plugin-verifier",
     "license": "Apache-2.0",
     "dependencies": {
+        "ncp": "~2.0.0",
         "request": "~2.87.0",
         "request-promise-native": "~1.0.5",
-        "rimraf": "^2.6.2",
+        "rimraf": "~2.6.2",
         "tslib": "~1.9.2"
     },
     "devDependencies": {

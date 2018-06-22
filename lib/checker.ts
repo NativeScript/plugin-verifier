@@ -3,6 +3,7 @@ import { ProjectService } from './project.service';
 import { GithubService } from './github.service';
 import { writeFileSync } from 'fs';
 import execPromise from './execPromise';
+import { Logger } from './log.service';
 
 interface resultsInterface {
     name: string;
@@ -21,12 +22,15 @@ class outputModel {
 }
 
 async function _setup(out: outputModel) {
+    Logger.debug("running setup...");
     const tnsVersion: string = await execPromise('.', 'tns --version', true) as string;
     const npmVersion = await execPromise('.', 'npm --version', true) as string;
     out.time = new Date().getTime();
     out.tnsVersion = tnsVersion.trim();
     out.nodeVersion = process.version;
     out.npmVersion = npmVersion.trim();
+
+    await ProjectService.setup();
 }
 
 export async function run() {
@@ -42,11 +46,11 @@ export async function run() {
         take = parseInt(args[3], 10);
     }
     const plugins = await MarketplaceService.getPlugins(skip,take);
-    console.log(`Asked for ${take} plugins starting from ${skip}. Received ${plugins.length} results.`);
+    Logger.log(`Asked for ${take} plugins starting from ${skip}. Received ${plugins.length} results.`);
 
     for (let index = 0; index < plugins.length; index++) {
         const plugin = plugins[index];
-        console.log(`Start check ${plugin.name}`);
+        Logger.log(`Start check ${plugin.name}`);
         const startDate = new Date().getTime();
         // Test if the plugin builds when added to an app
         const resultWP = await ProjectService.testPlugin(plugin);
@@ -61,7 +65,7 @@ export async function run() {
             demosBuild: !!resultD,
             demoTime: Math.round((endDate - midDate) / 1000)
         });
-        console.log(JSON.stringify(results[results.length - 1]));
+        Logger.log(JSON.stringify(results[results.length - 1]));
     }
 
     output.data = results;

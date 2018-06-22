@@ -2,31 +2,43 @@ import { MarketplaceService } from './marketplace.service';
 import { existsSync, mkdir, readFileSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
+import { ncp } from 'ncp';
 import { Logger } from './log.service';
 import execPromise from './execPromise';
 
 const testDirectory = 'test';
+const testProject = 'baseTS';
+
 export namespace ProjectService {
 
+    export async function setup() {
+        if (existsSync(testDirectory)) {
+            await _removeDirectory(testDirectory);
+        }
+
+        await _createTestDirectory();
+        await _createProject(testProject);
+    }
+
     export async function testPlugin(plugin: MarketplaceService.PluginModel) {
+        let result = false;
         try {
-            await _checkTestDirectory();
             let projectName = 'test' + plugin.name;
             // NativeScript max project name length
             projectName = projectName.substr(0, 30);
-            await _createProject(projectName);
+            await _copyTestProject(projectName);
             await _installPlugin(plugin.name, projectName, _isDev(plugin.name));
             const platform = _getPlatform(plugin);
             if (platform) {
-                const result = await _buildProject(projectName, platform);
-                return result;
+                result = !!(await _buildProject(projectName, platform));
             } else {
                 Logger.error('plugin has no platform');
             }
+            await _removeDirectory(path.join(testDirectory, projectName));
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
         }
-        return false;
+        return result;
     }
 
     async function _buildProject(projectName: string, platform: string) {
@@ -69,36 +81,29 @@ export namespace ProjectService {
         writeFileSync(mainTsPath, mainTs, 'utf8');
     }
 
-    async function _createProject(name: string) {
-        /*
-            Local tgz template vs installing from npm:
-            local
-                1:22 min for tns create
-                2:18 min for tns build
-            from npm (preferred)
-                0:14 min for tns create
-                1:42 min for tns build
-        */
-        Logger.debug(`creating project ${name} ...`);
-        await execPromise(testDirectory, `tns create ${name} --tsc`);
+    async function _copyTestProject(name: string) {
+        ncp.limit = 16;
+        return new Promise((resolve, reject) => {
+            ncp(path.join(testDirectory, testProject), path.join(testDirectory, name), err => {
+                return err ? reject(err) : resolve();
+            })
+        });
     }
 
-    async function _checkTestDirectory() {
-        if (existsSync(testDirectory)) {
-            return new Promise((resolve, reject) => {
-                Logger.debug(`removing ${testDirectory} project root`);
-                rimraf(testDirectory, errR => {
-                    if (errR) {
-                        return reject(errR);
-                    }
+    async function _createProject(name: string) {
+        Logger.debug(`creating project ${name} ...`);
+        await execPromise(testDirectory, `tns create ${name} --tsc`);
+        await execPromise(path.join(testDirectory, name), 'npm i');
+        await execPromise(path.join(testDirectory, name), 'tns platform add android');
+    }
 
-                    _createTestDirectory().then(resolve).catch(reject);
-                });
+    async function _removeDirectory(name: string) {
+        return new Promise((resolve, reject) => {
+            Logger.debug(`removing ${name} project root`);
+            rimraf(name, errR => {
+                return errR ? reject(errR) : resolve();
             });
-        } else {
-            return await _createTestDirectory();
-        }
-
+        });
     }
 
     async function _createTestDirectory() {
