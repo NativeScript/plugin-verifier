@@ -15,7 +15,7 @@ class nullLogger {
 
 export namespace Logger {
     const _logger = console;
-    //const _logger = new nullLogger();
+    // const _logger = new nullLogger();
 
     export function error(message: string) {
         _logger.error(message);

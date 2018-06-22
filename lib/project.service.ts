@@ -63,20 +63,17 @@ export namespace ProjectService {
         const command = isDev ? `npm i ${name} --save-dev` : `tns plugin add ${name}`;
         await execPromise(cwd, command);
         if (!isDev) {
-            // Install webpack, modify project to include plugin code
-            await execPromise(cwd, 'npm i --save-dev nativescript-dev-webpack');
-            await execPromise(cwd, 'npm i');
             _modifyProject(cwd, name);
         }
     }
 
     function _modifyProject(appRoot: string, name: string) {
-        const mainTsPath = path.join(appRoot, 'app', 'main-view-model.ts')
+        const mainTsPath = path.join(appRoot, 'app', 'main-view-model.ts');
         let mainTs = readFileSync(mainTsPath, 'utf8');
         mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
         mainTs = mainTs.replace('public onTap() {', 'public onTap() {\nfor (let testExport in testPlugin) {console.log(testExport);}\n');
         if (mainTs.indexOf('testExport') === -1) {
-            throw new Error('Template content has changed! Plugin test script needs to be updated.')
+            throw new Error('Template content has changed! Plugin test script needs to be updated.');
         }
         writeFileSync(mainTsPath, mainTs, 'utf8');
     }
@@ -86,15 +83,17 @@ export namespace ProjectService {
         return new Promise((resolve, reject) => {
             ncp(path.join(testDirectory, testProject), path.join(testDirectory, name), err => {
                 return err ? reject(err) : resolve();
-            })
+            });
         });
     }
 
     async function _createProject(name: string) {
         Logger.debug(`creating project ${name} ...`);
+        const baseProjectDir = path.join(testDirectory, name);
         await execPromise(testDirectory, `tns create ${name} --tsc`);
-        await execPromise(path.join(testDirectory, name), 'npm i');
-        await execPromise(path.join(testDirectory, name), 'tns platform add android');
+        await execPromise(baseProjectDir, 'npm i --save-dev nativescript-dev-webpack');
+        await execPromise(baseProjectDir, 'npm i');
+        await execPromise(baseProjectDir, 'tns platform add android');
     }
 
     async function _removeDirectory(name: string) {
