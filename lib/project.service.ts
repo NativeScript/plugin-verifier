@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as rimraf from 'rimraf';
 import { ncp } from 'ncp';
 import { Logger } from './log.service';
-import execPromise from './execPromise';
+import { execPromise, dirNameFromPluginName } from './execPromise';
 
 const testDirectory = 'test';
 const testProject = 'baseTS';
@@ -23,9 +23,7 @@ export namespace ProjectService {
     export async function testPlugin(plugin: MarketplaceService.PluginModel) {
         let result = false;
         try {
-            let projectName = 'test' + plugin.name;
-            // NativeScript max project name length
-            projectName = projectName.substr(0, 30);
+            const projectName = dirNameFromPluginName(plugin.name);
             await _copyTestProject(projectName);
             await _installPlugin(plugin.name, projectName, _isDev(plugin.name));
             const platform = _getPlatform(plugin);

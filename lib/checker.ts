@@ -2,10 +2,10 @@ import { MarketplaceService } from './marketplace.service';
 import { ProjectService } from './project.service';
 import { GithubService } from './github.service';
 import { writeFileSync } from 'fs';
-import execPromise from './execPromise';
+import { execPromise } from './execPromise';
 import { Logger } from './log.service';
 
-interface resultsInterface {
+interface ResultsInterface {
     name: string;
     webpackBuild: boolean;
     webpackTime: number;
@@ -13,16 +13,16 @@ interface resultsInterface {
     demoTime: number;
 }
 
-class outputModel {
-    data: Array<resultsInterface>;
+class OutputModel {
+    data: Array<ResultsInterface>;
     time: number;
     tnsVersion: string;
     nodeVersion: string;
     npmVersion: string;
 }
 
-async function _setup(out: outputModel) {
-    Logger.debug("running setup...");
+async function _setup(out: OutputModel) {
+    Logger.debug('running setup...');
     const tnsVersion: string = await execPromise('.', 'tns --version', true) as string;
     const npmVersion = await execPromise('.', 'npm --version', true) as string;
     out.time = new Date().getTime();
@@ -34,8 +34,8 @@ async function _setup(out: outputModel) {
 }
 
 export async function run() {
-    const results: Array<resultsInterface> = [];
-    const output = new outputModel();
+    const results: Array<ResultsInterface> = [];
+    const output = new OutputModel();
     await _setup(output);
     const args = process.argv;
     let skip = 0, take = 10;
@@ -45,7 +45,7 @@ export async function run() {
     if (args.length > 3) {
         take = parseInt(args[3], 10);
     }
-    const plugins = await MarketplaceService.getPlugins(skip,take);
+    const plugins = await MarketplaceService.getPlugins(skip, take);
     Logger.log(`Asked for ${take} plugins starting from ${skip}. Received ${plugins.length} results.`);
 
     for (let index = 0; index < plugins.length; index++) {

@@ -3,7 +3,7 @@ import { existsSync, mkdir, readFileSync } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 import { Logger } from './log.service';
-import execPromise from './execPromise';
+import { execPromise, dirNameFromPluginName } from './execPromise';
 
 const testDirectory = 'testGit';
 export namespace GithubService {
@@ -16,9 +16,7 @@ export namespace GithubService {
 
         try {
             await _checkTestDirectory();
-            let projectName = 'test' + plugin.name;
-            // NativeScript max project name length
-            projectName = projectName.substr(0, 30);
+            const projectName = dirNameFromPluginName(plugin.name);
             await _cloneProject(plugin.repositoryUrl, projectName);
             const platform = _getPlatform(plugin);
             const demoDir = _getDemoDir(path.join(testDirectory, projectName), plugin);
@@ -48,7 +46,7 @@ export namespace GithubService {
     }
 
     async function _buildProject(name: string, platform: string) {
-        // TODO: run "tns update" / detect and build webpack
+        // TODO: run 'tns update' / detect and build webpack
         Logger.debug(`building project in ${name} for ${platform} ...`);
         // let pkgFile: any;
         // const pkgFileStr = readFileSync(path.join(name, 'package.json'), 'utf8');

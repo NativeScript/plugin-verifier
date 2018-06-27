@@ -1,9 +1,7 @@
-const marketplaceApiUrl = 'https://market.nativescript.org/api/plugins?&skip=%s&take=%s';
-
 import * as util from 'util';
 import * as request from 'request-promise-native';
 
-const pluginCount = 20;
+const marketplaceApiUrl = 'https://market.nativescript.org/api/plugins?&skip=%s&take=%s';
 
 export namespace MarketplaceService {
     export interface PluginModel {
@@ -33,7 +31,7 @@ export namespace MarketplaceService {
             const parsed = JSON.parse(result);
             return parsed.data as Array<PluginModel>;
         } catch (err) {
-            console.log("error while downloading plugins info from marketplace");
+            console.log('error while downloading plugins info from marketplace');
             return [];
         }
     }

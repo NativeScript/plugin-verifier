@@ -12,10 +12,12 @@
         "request": "~2.87.0",
         "request-promise-native": "~1.0.5",
         "rimraf": "~2.6.2",
+        "sanitize-filename": "^1.6.1",
         "tslib": "~1.9.2"
     },
     "devDependencies": {
         "@types/node": "^10.3.3",
+        "nativescript": "*",
         "typescript": "^2.9.2"
     }
 }
