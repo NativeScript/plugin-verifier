@@ -7,6 +7,7 @@ let _localNativeScript = '';
 function _getLocalNativeScript() {
     if (!_localNativeScript) {
         _localNativeScript = path.join(path.resolve('.'), 'node_modules', '.bin') + path.sep;
+        _localNativeScript = _localNativeScript.replace(/ /g, '\\ ');
     }
 
     return _localNativeScript;
