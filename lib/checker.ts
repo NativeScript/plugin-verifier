@@ -7,7 +7,7 @@ import { Logger } from './log.service';
 
 interface ResultsInterface {
     name: string;
-    webpackBuild: boolean;
+    webpack: any;
     webpackTime: number;
     demosBuild: boolean;
     demoTime: number;
@@ -60,7 +60,7 @@ export async function run() {
         const endDate = new Date().getTime();
         results.push({
             name: plugin.name,
-            webpackBuild: !!resultWP,
+            webpack: resultWP,
             webpackTime: Math.round((midDate - startDate) / 1000),
             demosBuild: !!resultD,
             demoTime: Math.round((endDate - midDate) / 1000)

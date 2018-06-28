@@ -21,17 +21,26 @@ export namespace ProjectService {
     }
 
     export async function testPlugin(plugin: MarketplaceService.PluginModel) {
-        let result = false;
+        const result = { android: false, ios: false };
+        let hasPlatform = false;
         try {
             const projectName = dirNameFromPluginName(plugin.name);
             await _copyTestProject(projectName);
             await _installPlugin(plugin.name, projectName, _isDev(plugin.name));
-            const platform = _getPlatform(plugin);
-            if (platform) {
-                result = !!(await _buildProject(projectName, platform));
-            } else {
+            if (plugin.badges.androidVersion) {
+                result.android = !!(await _buildProject(projectName, 'android'));
+                hasPlatform = true;
+            }
+
+            if (plugin.badges.iosVersion) {
+                result.ios = !!(await _buildProject(projectName, 'ios'));
+                hasPlatform = true;
+            }
+
+            if (!hasPlatform) {
                 Logger.error('plugin has no platform');
             }
+
             await _removeDirectory(path.join(testDirectory, projectName));
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
@@ -44,11 +53,6 @@ export namespace ProjectService {
         const cwd = path.join(testDirectory, projectName);
         const result = await execPromise(cwd, `tns build ${platform} --bundle`);
         return result;
-    }
-
-    function _getPlatform(plugin: MarketplaceService.PluginModel): string {
-        const platform = plugin.badges && plugin.badges.androidVersion ? 'android' : plugin.badges && plugin.badges.iosVersion ? 'ios' : '';
-        return platform;
     }
 
     function _isDev(name: string): boolean {
@@ -92,6 +96,7 @@ export namespace ProjectService {
         await execPromise(baseProjectDir, 'npm i --save-dev nativescript-dev-webpack');
         await execPromise(baseProjectDir, 'npm i');
         await execPromise(baseProjectDir, 'tns platform add android');
+        await execPromise(baseProjectDir, 'tns platform add ios');
     }
 
     async function _removeDirectory(name: string) {
