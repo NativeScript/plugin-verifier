@@ -1,5 +1,5 @@
 import { MarketplaceService } from './marketplace.service';
-import { existsSync, mkdir, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdir, readFileSync, writeFileSync, rename } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 import { ncp } from 'ncp';
@@ -8,6 +8,7 @@ import { execPromise, dirNameFromPluginName } from './execPromise';
 
 const testDirectory = 'test';
 const testProject = 'baseTS';
+const testProjectOriginalSuffix = '_original';
 
 export namespace ProjectService {
 
@@ -18,22 +19,22 @@ export namespace ProjectService {
 
         await _createTestDirectory();
         await _createProject(testProject);
+        await _renameTestProject();
     }
 
     export async function testPlugin(plugin: MarketplaceService.PluginModel) {
         const result = { android: false, ios: false };
         let hasPlatform = false;
         try {
-            const projectName = dirNameFromPluginName(plugin.name);
-            await _copyTestProject(projectName);
-            await _installPlugin(plugin.name, projectName, _isDev(plugin.name));
+            await _copyTestProject(testProject);
+            await _installPlugin(plugin.name, testProject, _isDev(plugin.name));
             if (plugin.badges.androidVersion) {
-                result.android = !!(await _buildProject(projectName, 'android'));
+                result.android = !!(await _buildProject(testProject, 'android'));
                 hasPlatform = true;
             }
 
             if (plugin.badges.iosVersion) {
-                result.ios = !!(await _buildProject(projectName, 'ios'));
+                result.ios = !!(await _buildProject(testProject, 'ios'));
                 hasPlatform = true;
             }
 
@@ -41,7 +42,7 @@ export namespace ProjectService {
                 Logger.error('plugin has no platform');
             }
 
-            await _removeDirectory(path.join(testDirectory, projectName));
+            await _removeDirectory(path.join(testDirectory, testProject));
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
         }
@@ -81,9 +82,22 @@ export namespace ProjectService {
     }
 
     async function _copyTestProject(name: string) {
+        const newPath = path.join(testDirectory, name);
+        if (existsSync(newPath)) {
+            await _removeDirectory(newPath);
+        }
+
         ncp.limit = 16;
         return new Promise((resolve, reject) => {
-            ncp(path.join(testDirectory, testProject), path.join(testDirectory, name), err => {
+            ncp(path.join(testDirectory, testProject + testProjectOriginalSuffix), newPath, err => {
+                return err ? reject(err) : resolve();
+            });
+        });
+    }
+
+    async function _renameTestProject() {
+        return new Promise((resolve, reject) => {
+            rename(path.join(testDirectory, testProject), path.join(testDirectory, testProject + testProjectOriginalSuffix), err => {
                 return err ? reject(err) : resolve();
             });
         });
