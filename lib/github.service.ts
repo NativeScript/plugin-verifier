@@ -1,5 +1,5 @@
 import { MarketplaceService } from './marketplace.service';
-import { existsSync, mkdir, readFileSync } from 'fs';
+import { existsSync, mkdir, readFileSync, writeFileSync } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 import { Logger } from './log.service';
@@ -23,16 +23,13 @@ export namespace GithubService {
             const demoDir = _getDemoDir(path.join(testDirectory, projectName), plugin);
             result.demoDirectory = demoDir;
 
-            // if there is a plugin build script, execute it
-            await execPromise(demoDir, `npm run build.plugin --if-present`);
-
             if (plugin.badges.androidVersion) {
-                result.android = !!(await _buildProject(demoDir, 'android'));
+                result.android = !!(await _buildProject(demoDir, plugin.name, 'android'));
                 hasPlatform = true;
             }
 
             if (plugin.badges.iosVersion) {
-                result.ios = !!(await _buildProject(demoDir, 'ios'));
+                result.ios = !!(await _buildProject(demoDir, plugin.name, 'ios'));
                 hasPlatform = true;
             }
 
@@ -59,11 +56,40 @@ export namespace GithubService {
         return name;
     }
 
-    async function _buildProject(name: string, platform: string) {
+    async function _buildProject(cwd: string, name: string, platform: string) {
         // TODO: run 'tns update' / detect and build webpack
-        Logger.debug(`building project in ${name} for ${platform} ...`);
-        await execPromise(name, 'npm i');
-        const result = await execPromise(name, `tns build ${platform}`);
+        Logger.debug(`building project in ${cwd} for ${platform} ...`);
+        const pkgFilePath = path.join(cwd, 'package.json');
+        let pkgFile: any;
+        try {
+            const pkgFileStr = readFileSync(pkgFilePath, 'utf8');
+            pkgFile = JSON.parse(pkgFileStr);
+        } catch (e) {
+            Logger.error(e.message || e);
+            return false;
+        }
+
+        if (!pkgFile) {
+            return false;
+        }
+
+        if (pkgFile.dependencies && pkgFile.dependencies[name]) {
+            pkgFile.dependencies[name] = '*';
+        }
+
+        if (pkgFile.devDependencies && pkgFile.devDependencies[name]) {
+            pkgFile.devDependencies[name] = '*';
+        }
+
+        try {
+            writeFileSync(pkgFilePath, JSON.stringify(pkgFile, null, 4), 'utf8');
+        } catch (e) {
+            Logger.error(e.message || e);
+            return false;
+        }
+
+        await execPromise(cwd, 'npm i');
+        const result = await execPromise(cwd, `tns build ${platform}`);
         return result;
     }
 
