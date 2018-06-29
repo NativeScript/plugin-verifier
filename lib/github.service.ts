@@ -9,27 +9,41 @@ const testDirectory = 'testGit';
 export namespace GithubService {
 
     export async function testPlugin(plugin: MarketplaceService.PluginModel) {
+        const result = { android: false, ios: false, demoDirectory: '' };
+        let hasPlatform = false;
         if (!plugin || !plugin.badges || !plugin.badges.demos) {
             Logger.error('plugin has no demos badge');
-            return false;
+            return result;
         }
 
         try {
             await _checkTestDirectory();
             const projectName = dirNameFromPluginName(plugin.name);
             await _cloneProject(plugin.repositoryUrl, projectName);
-            const platform = _getPlatform(plugin);
             const demoDir = _getDemoDir(path.join(testDirectory, projectName), plugin);
-            if (platform) {
-                const result = await _buildProject(demoDir, platform);
-                return result;
-            } else {
+            result.demoDirectory = demoDir;
+
+            // if there is a plugin build script, execute it
+            await execPromise(name, `npm run build.plugin --if-present`);
+
+            if (plugin.badges.androidVersion) {
+                result.android = !!(await _buildProject(demoDir, 'android'));
+                hasPlatform = true;
+            }
+
+            if (plugin.badges.iosVersion) {
+                result.ios = !!(await _buildProject(demoDir, 'ios'));
+                hasPlatform = true;
+            }
+
+            if (!hasPlatform) {
                 Logger.error('plugin has no platform');
             }
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
         }
-        return false;
+
+        return result;
     }
 
     function _getDemoDir(name: string, plugin: MarketplaceService.PluginModel) {
@@ -48,22 +62,9 @@ export namespace GithubService {
     async function _buildProject(name: string, platform: string) {
         // TODO: run 'tns update' / detect and build webpack
         Logger.debug(`building project in ${name} for ${platform} ...`);
-        // let pkgFile: any;
-        // const pkgFileStr = readFileSync(path.join(name, 'package.json'), 'utf8');
-        // pkgFile = JSON.parse(pkgFileStr);
-        // if (!pkgFile) return false;
-
-        // if there is a plugin build script, execute it
-        await execPromise(name, `npm run build.plugin --if-present`);
-
         await execPromise(name, 'npm i');
         const result = await execPromise(name, `tns build ${platform}`);
         return result;
-    }
-
-    function _getPlatform(plugin: MarketplaceService.PluginModel): string {
-        const platform = plugin.badges && plugin.badges.androidVersion ? 'android' : plugin.badges && plugin.badges.iosVersion ? 'ios' : '';
-        return platform;
     }
 
     async function _cloneProject(repositoryUrl: string, name: string) {

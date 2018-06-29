@@ -42,7 +42,7 @@ export function execPromise(cwd: string, command: string, returnOutput = false) 
 }
 
 export function dirNameFromPluginName(name: string): string {
-    let dirName = 'test' + name;
+    let dirName = name;
     // remove / and other invalid chars from plugin name
     dirName = sanitize(dirName);
     // NativeScript max project name length

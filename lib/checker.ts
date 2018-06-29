@@ -9,7 +9,7 @@ interface ResultsInterface {
     name: string;
     webpack: any;
     webpackTime: number;
-    demosBuild: boolean;
+    demos: any;
     demoTime: number;
 }
 
@@ -62,7 +62,7 @@ export async function run() {
             name: plugin.name,
             webpack: resultWP,
             webpackTime: Math.round((midDate - startDate) / 1000),
-            demosBuild: !!resultD,
+            demos: resultD,
             demoTime: Math.round((endDate - midDate) / 1000)
         });
         Logger.log(JSON.stringify(results[results.length - 1]));

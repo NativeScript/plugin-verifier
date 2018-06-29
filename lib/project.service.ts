@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as rimraf from 'rimraf';
 import { ncp } from 'ncp';
 import { Logger } from './log.service';
-import { execPromise, dirNameFromPluginName } from './execPromise';
+import { execPromise } from './execPromise';
 
 const testDirectory = 'test';
 const testProject = 'baseTS';
