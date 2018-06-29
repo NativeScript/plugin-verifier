@@ -1,5 +1,5 @@
 
-class nullLogger {
+class NullLogger {
     error(message: string) {
         // null
     }

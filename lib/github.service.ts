@@ -24,7 +24,7 @@ export namespace GithubService {
             result.demoDirectory = demoDir;
 
             // if there is a plugin build script, execute it
-            await execPromise(name, `npm run build.plugin --if-present`);
+            await execPromise(demoDir, `npm run build.plugin --if-present`);
 
             if (plugin.badges.androidVersion) {
                 result.android = !!(await _buildProject(demoDir, 'android'));
@@ -40,7 +40,7 @@ export namespace GithubService {
                 Logger.error('plugin has no platform');
             }
         } catch (errExec) {
-            Logger.error(JSON.stringify(errExec));
+            Logger.error(JSON.stringify(errExec.message || errExec));
         }
 
         return result;
