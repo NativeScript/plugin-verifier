@@ -23,13 +23,17 @@ export namespace GithubService {
             const demoDir = _getDemoDir(path.join(testDirectory, projectName), plugin);
             result.demoDirectory = demoDir;
 
+            if (plugin.badges.androidVersion || plugin.badges.iosVersion) {
+                await _prepareDemoProject(demoDir, plugin.name);
+            }
+
             if (plugin.badges.androidVersion) {
-                result.android = !!(await _buildProject(demoDir, plugin.name, 'android'));
+                result.android = !!(await _buildProject(demoDir, 'android'));
                 hasPlatform = true;
             }
 
             if (plugin.badges.iosVersion) {
-                result.ios = !!(await _buildProject(demoDir, plugin.name, 'ios'));
+                result.ios = !!(await _buildProject(demoDir, 'ios'));
                 hasPlatform = true;
             }
 
@@ -56,9 +60,11 @@ export namespace GithubService {
         return name;
     }
 
-    async function _buildProject(cwd: string, name: string, platform: string) {
+    async function _prepareDemoProject(cwd: string, name: string) {
         // TODO: run 'tns update' / detect and build webpack
-        Logger.debug(`building project in ${cwd} for ${platform} ...`);
+        Logger.debug(`preparing project in ${cwd}...`);
+
+        // replace plugin version in package.json with latest(*)
         const pkgFilePath = path.join(cwd, 'package.json');
         let pkgFile: any;
         try {
@@ -66,29 +72,37 @@ export namespace GithubService {
             pkgFile = JSON.parse(pkgFileStr);
         } catch (e) {
             Logger.error(e.message || e);
-            return false;
+            return;
         }
 
-        if (!pkgFile) {
-            return false;
+        if (pkgFile) {
+            if (pkgFile.dependencies && pkgFile.dependencies[name]) {
+                pkgFile.dependencies[name] = '*';
+            }
+
+            if (pkgFile.devDependencies && pkgFile.devDependencies[name]) {
+                pkgFile.devDependencies[name] = '*';
+            }
+
+            try {
+                writeFileSync(pkgFilePath, JSON.stringify(pkgFile, null, 4), 'utf8');
+            } catch (e) {
+                Logger.error(e.message || e);
+                return;
+            }
         }
 
-        if (pkgFile.dependencies && pkgFile.dependencies[name]) {
-            pkgFile.dependencies[name] = '*';
-        }
-
-        if (pkgFile.devDependencies && pkgFile.devDependencies[name]) {
-            pkgFile.devDependencies[name] = '*';
-        }
-
-        try {
-            writeFileSync(pkgFilePath, JSON.stringify(pkgFile, null, 4), 'utf8');
-        } catch (e) {
-            Logger.error(e.message || e);
-            return false;
+        const srcDir = path.join(cwd, '..', 'src');
+        if (existsSync(srcDir)) {
+            // npm i from source directory so references can be used
+            await execPromise(srcDir, 'npm i');
         }
 
         await execPromise(cwd, 'npm i');
+    }
+
+    async function _buildProject(cwd: string, platform: string) {
+        Logger.debug(`building project in ${cwd} for ${platform}...`);
         const result = await execPromise(cwd, `tns build ${platform}`);
         return result;
     }
