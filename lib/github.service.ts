@@ -20,25 +20,33 @@ export namespace GithubService {
             await _checkTestDirectory();
             const projectName = dirNameFromPluginName(plugin.name);
             await _cloneProject(plugin.repositoryUrl, projectName);
-            const demoDir = _getDemoDir(path.join(testDirectory, projectName), plugin);
-            result.demoDirectory = demoDir;
+            const demoDirs = _getDemoDirs(path.join(testDirectory, projectName));
+            for (let i = 0; i < demoDirs.length; i++) {
+                const demoDir = demoDirs[i];
+                result.demoDirectory = demoDir;
+                if (plugin.badges.androidVersion || plugin.badges.iosVersion) {
+                    await _prepareDemoProject(demoDir, plugin.name);
+                }
 
-            if (plugin.badges.androidVersion || plugin.badges.iosVersion) {
-                await _prepareDemoProject(demoDir, plugin.name);
-            }
+                if (plugin.badges.androidVersion) {
+                    result.android = !!(await _buildProject(demoDir, 'android'));
+                    hasPlatform = true;
+                }
 
-            if (plugin.badges.androidVersion) {
-                result.android = !!(await _buildProject(demoDir, 'android'));
-                hasPlatform = true;
-            }
+                if (plugin.badges.iosVersion) {
+                    result.ios = !!(await _buildProject(demoDir, 'ios'));
+                    hasPlatform = true;
+                }
 
-            if (plugin.badges.iosVersion) {
-                result.ios = !!(await _buildProject(demoDir, 'ios'));
-                hasPlatform = true;
-            }
+                if (!hasPlatform) {
+                    Logger.error('plugin has no platform');
+                    break;
+                }
 
-            if (!hasPlatform) {
-                Logger.error('plugin has no platform');
+                if (result.android || result.ios) {
+                    // successful demo build
+                    break;
+                }
             }
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec.message || errExec));
@@ -47,17 +55,17 @@ export namespace GithubService {
         return result;
     }
 
-    function _getDemoDir(name: string, plugin: MarketplaceService.PluginModel) {
+    function _getDemoDirs(parentDir: string) {
         const dirs = ['demo', 'demo-ts', 'demo-angular', 'demo-ng', 'ng-demo', 'demo-vue'];
+        const available = [];
         for (let index = 0; index < dirs.length; index++) {
             const element = dirs[index];
-            if (existsSync(path.join(name, element))) {
-                name = path.join(name, element);
-                break;
+            if (existsSync(path.join(parentDir, element))) {
+                available.push(path.join(parentDir, element));
             }
         }
 
-        return name;
+        return available;
     }
 
     async function _prepareDemoProject(cwd: string, name: string) {
