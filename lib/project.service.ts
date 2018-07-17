@@ -21,38 +21,63 @@ export namespace ProjectService {
         await _createProject(testProject);
         await _renameTestProject();
     }
-
-    export async function testPlugin(plugin: MarketplaceService.PluginModel) {
-        const result = { android: false, ios: false };
-        let hasPlatform = false;
+    export async function prepareProject(plugin: MarketplaceService.PluginModel) {
         try {
             await _copyTestProject(testProject);
             await _installPlugin(plugin.name, testProject, _isDev(plugin.name));
+        } catch (errExec) {
+            Logger.error(JSON.stringify(errExec));
+        }
+    }
+
+    export async function cleanProject() {
+        try {
+            await new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                }, 2000);
+            });
+            await _removeDirectory(path.join(testDirectory, testProject));
+        } catch (errExec) {
+            Logger.error(JSON.stringify(errExec));
+        }
+    }
+
+    export async function testWebpack(plugin: MarketplaceService.PluginModel) {
+        return await testPlugin(plugin, '--bundle');
+    }
+
+    export async function testBuild(plugin: MarketplaceService.PluginModel) {
+        return await testPlugin(plugin, '');
+    }
+
+    async function testPlugin(plugin: MarketplaceService.PluginModel, options: string) {
+        const result = { android: false, ios: false };
+        let hasPlatform = false;
+        try {
             if (plugin.badges.androidVersion) {
-                result.android = !!(await _buildProject(testProject, 'android'));
+                result.android = !!(await _buildProject(testProject, 'android', options));
                 hasPlatform = true;
             }
 
             if (plugin.badges.iosVersion) {
-                result.ios = !!(await _buildProject(testProject, 'ios'));
+                result.ios = !!(await _buildProject(testProject, 'ios', options));
                 hasPlatform = true;
             }
 
             if (!hasPlatform) {
                 Logger.error('plugin has no platform');
             }
-
-            await _removeDirectory(path.join(testDirectory, testProject));
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
         }
         return result;
     }
 
-    async function _buildProject(projectName: string, platform: string) {
+    async function _buildProject(projectName: string, platform: string, options: string) {
         Logger.debug(`building project for ${platform} ...`);
         const cwd = path.join(testDirectory, projectName);
-        const result = await execPromise(cwd, `tns build ${platform} --bundle`);
+        const result = await execPromise(cwd, `tns build ${platform} ${options}`);
         return result;
     }
 

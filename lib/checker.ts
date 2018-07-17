@@ -1,6 +1,5 @@
 import { MarketplaceService } from './marketplace.service';
 import { ProjectService } from './project.service';
-import { GithubService } from './github.service';
 import { writeFileSync } from 'fs';
 import { execPromise } from './execPromise';
 import { Logger } from './log.service';
@@ -9,8 +8,8 @@ interface ResultsInterface {
     name: string;
     webpack: any;
     webpackTime: number;
-    demos: any;
-    demoTime: number;
+    build: any;
+    buildTime: number;
 }
 
 class OutputModel {
@@ -51,19 +50,21 @@ export async function run() {
     for (let index = 0; index < plugins.length; index++) {
         const plugin = plugins[index];
         Logger.log(`Start check ${plugin.name}`);
-        const startDate = new Date().getTime();
+
         // Test if the plugin builds when added to an app
-        const resultWP = await ProjectService.testPlugin(plugin);
+        await ProjectService.prepareProject(plugin);
+        const startDate = new Date().getTime();
+        const resultWP = await ProjectService.testWebpack(plugin);
         const midDate = new Date().getTime();
-        // Test if the plugin builds its demo (if available)
-        const resultD = await GithubService.testPlugin(plugin);
+        const resultB = await ProjectService.testBuild(plugin);
         const endDate = new Date().getTime();
+        await ProjectService.cleanProject();
         results.push({
             name: plugin.name,
             webpack: resultWP,
             webpackTime: Math.round((midDate - startDate) / 1000),
-            demos: resultD,
-            demoTime: Math.round((endDate - midDate) / 1000)
+            build: resultB,
+            buildTime: Math.round((endDate - midDate) / 1000)
         });
         Logger.log(JSON.stringify(results[results.length - 1]));
     }
