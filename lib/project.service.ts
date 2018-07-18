@@ -24,7 +24,7 @@ export namespace ProjectService {
     export async function prepareProject(plugin: MarketplaceService.PluginModel) {
         try {
             await _copyTestProject(testProject);
-            await _installPlugin(plugin.name, testProject, _isDev(plugin.name));
+            await _installPlugin(plugin, testProject);
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
         }
@@ -53,20 +53,20 @@ export namespace ProjectService {
 
     async function testPlugin(plugin: MarketplaceService.PluginModel, options: string) {
         const result = { android: false, ios: false };
-        let hasPlatform = false;
+        let skipBuild = false;
         try {
-            if (plugin.badges.androidVersion) {
+            skipBuild = !plugin.badges.androidVersion && plugin.badges.iosVersion;
+            if (!skipBuild) {
                 result.android = !!(await _buildProject(testProject, 'android', options));
-                hasPlatform = true;
+            } else {
+                Logger.error('Skipping android build! Plugin only has ios support.');
             }
 
-            if (plugin.badges.iosVersion) {
+            skipBuild = !plugin.badges.iosVersion && plugin.badges.androidVersion;
+            if (!skipBuild) {
                 result.ios = !!(await _buildProject(testProject, 'ios', options));
-                hasPlatform = true;
-            }
-
-            if (!hasPlatform) {
-                Logger.error('plugin has no platform');
+            } else {
+                Logger.error('Skipping ios build! Plugin only has android support.');
             }
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
@@ -81,24 +81,35 @@ export namespace ProjectService {
         return result;
     }
 
-    function _isDev(name: string): boolean {
-        return name && name.indexOf('-dev-') !== -1;
-    }
-
-    async function _installPlugin(name: string, projectName: string, isDev: boolean) {
+    async function _installPlugin(plugin: MarketplaceService.PluginModel, projectName: string) {
+        const name = plugin.name;
+        const isDev = name && name.indexOf('-dev-') !== -1;
         Logger.debug(`installing ${name} plugin ...`);
         const cwd = path.join(testDirectory, projectName);
-        const command = isDev ? `npm i ${name} --save-dev` : `tns plugin add ${name}`;
+        let command = `tns plugin add ${name}`;
+        if (isDev) {
+            // dev plugin (e.g. nativescript-dev-typescript)
+            command = `npm i ${name} --save-dev`;
+        } else if (!plugin.badges.androidVersion && !plugin.badges.iosVersion) {
+            // regular (not nativescript specific) plugin
+            command = `npm i ${name} --save`;
+        }
+
         await execPromise(cwd, command);
         if (!isDev) {
-            _modifyProject(cwd, name);
+            _modifyProject(cwd, plugin);
         }
     }
 
-    function _modifyProject(appRoot: string, name: string) {
+    function _modifyProject(appRoot: string, plugin: MarketplaceService.PluginModel) {
+        const name = plugin.name;
         const mainTsPath = path.join(appRoot, 'app', 'main-view-model.ts');
         let mainTs = readFileSync(mainTsPath, 'utf8');
-        mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
+        if (plugin.badges.typings) {
+            mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
+        } else {
+            mainTs = `const testPlugin = require('${name}');\n` + mainTs;
+        }
         mainTs = mainTs.replace('public onTap() {', 'public onTap() {\nfor (let testExport in testPlugin) {console.log(testExport);}\n');
         if (mainTs.indexOf('testExport') === -1) {
             throw new Error('Template content has changed! Plugin test script needs to be updated.');
