@@ -16,7 +16,7 @@
         "tslib": "~1.9.2"
     },
     "devDependencies": {
-        "@types/node": "^10.3.3",
+        "@types/node": "^10.1.4",
         "nativescript": "*",
         "typescript": "^2.9.2"
     }

@@ -6,10 +6,16 @@ import { Logger } from './log.service';
 
 interface ResultsInterface {
     name: string;
-    webpack: any;
-    webpackTime: number;
-    build: any;
-    buildTime: number;
+    webpack?: any;
+    webpackTime?: number;
+    build?: any;
+    buildTime?: number;
+    snapshot?: any;
+    snapshotTime?: number;
+    aot?: any;
+    aotTime?: number;
+    uglify?: any;
+    uglifyTime?: number;
 }
 
 class OutputModel {
@@ -53,20 +59,25 @@ export async function run() {
 
         // Test if the plugin builds when added to an app
         await ProjectService.prepareProject(plugin);
-        const startDate = new Date().getTime();
-        const resultWP = await ProjectService.testWebpack(plugin);
-        const midDate = new Date().getTime();
-        const resultB = await ProjectService.testBuild(plugin);
-        const endDate = new Date().getTime();
+        const actions = ['testWebpack', 'testBuild', 'testSnapshot']; // removed for speed , 'testUglify', 'testAot'];
+        const result: ResultsInterface = {
+            name: plugin.name
+        };
+
+        for (let index = 0; index < actions.length; index++) {
+            const action = actions[index];
+            const startDate = new Date().getTime();
+            const actionResult = await ProjectService[action](plugin);
+            const endDate = new Date().getTime();
+            const resultName = action.replace('test', '').toLowerCase();
+            result[resultName] = actionResult;
+            result[resultName + 'Time'] = Math.round((endDate - startDate) / 1000);
+        }
+
         await ProjectService.cleanProject();
-        results.push({
-            name: plugin.name,
-            webpack: resultWP,
-            webpackTime: Math.round((midDate - startDate) / 1000),
-            build: resultB,
-            buildTime: Math.round((endDate - midDate) / 1000)
-        });
-        Logger.log(JSON.stringify(results[results.length - 1]));
+        results.push(result);
+        Logger.log(JSON.stringify(results[results.length - 1], null, 4));
+        Logger.log('---------------------------------------------------------------------------');
     }
 
     output.data = results;

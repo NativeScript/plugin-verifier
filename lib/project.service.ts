@@ -7,7 +7,7 @@ import { Logger } from './log.service';
 import { execPromise } from './execPromise';
 
 const testDirectory = 'test';
-const testProject = 'baseTS';
+const testProject = 'baseNG';
 const testProjectOriginalSuffix = '_original';
 
 export namespace ProjectService {
@@ -45,6 +45,18 @@ export namespace ProjectService {
 
     export async function testWebpack(plugin: MarketplaceService.PluginModel) {
         return await testPlugin(plugin, '--bundle');
+    }
+
+    export async function testSnapshot(plugin: MarketplaceService.PluginModel) {
+        return await testPlugin(plugin, '--bundle --release --env.snapshot --key-store-path ~/.android/debug.keystore --key-store-password android --key-store-alias androiddebugkey --key-store-alias-password android');
+    }
+
+    export async function testUglify(plugin: MarketplaceService.PluginModel) {
+        return await testPlugin(plugin, '--bundle --env.uglify');
+    }
+
+    export async function testAot(plugin: MarketplaceService.PluginModel) {
+        return await testPlugin(plugin, '--bundle --env.aot');
     }
 
     export async function testBuild(plugin: MarketplaceService.PluginModel) {
@@ -103,18 +115,35 @@ export namespace ProjectService {
 
     function _modifyProject(appRoot: string, plugin: MarketplaceService.PluginModel) {
         const name = plugin.name;
-        const mainTsPath = path.join(appRoot, 'app', 'main-view-model.ts');
-        let mainTs = readFileSync(mainTsPath, 'utf8');
-        if (plugin.badges.typings) {
-            mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
-        } else {
-            mainTs = `const testPlugin = require('${name}');\n` + mainTs;
+
+        try {
+            const packagePath = path.join(appRoot, 'app', 'package.json');
+            let packageJson = readFileSync(packagePath, 'utf8');
+            packageJson = packageJson.replace('"android": {', `"android": {\n"requireModules": ["${name}"],`);
+            if (packageJson.indexOf(name) === -1) {
+                throw new Error('package.json content has changed! Plugin test script needs to be updated.');
+            }
+            writeFileSync(packagePath, packageJson, 'utf8');
+        } catch (e) {
+            Logger.error('error while updating package.json in app folder! ' + (e && e.message));
         }
-        mainTs = mainTs.replace('public onTap() {', 'public onTap() {\nfor (let testExport in testPlugin) {console.log(testExport);}\n');
-        if (mainTs.indexOf('testExport') === -1) {
-            throw new Error('Template content has changed! Plugin test script needs to be updated.');
+
+        try {
+            const mainTsPath = path.join(appRoot, 'app', 'home', 'home.component.ts');
+            let mainTs = readFileSync(mainTsPath, 'utf8');
+            if (plugin.badges.typings) {
+                mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
+            } else {
+                mainTs = `const testPlugin = require('${name}');\n` + mainTs;
+            }
+            mainTs = mainTs.replace('constructor() {', 'constructor() {\nfor (let testExport in testPlugin) {console.log(testExport);}\n');
+            if (mainTs.indexOf('console.log(testExport)') === -1) {
+                throw new Error('Template component content has changed! Plugin test script needs to be updated.');
+            }
+            writeFileSync(mainTsPath, mainTs, 'utf8');
+        } catch (e) {
+            Logger.error('error while updating main-view-model.ts in app folder! ' + (e && e.message));
         }
-        writeFileSync(mainTsPath, mainTs, 'utf8');
     }
 
     async function _copyTestProject(name: string) {
@@ -142,8 +171,7 @@ export namespace ProjectService {
     async function _createProject(name: string) {
         Logger.debug(`creating project ${name} ...`);
         const baseProjectDir = path.join(testDirectory, name);
-        await execPromise(testDirectory, `tns create ${name} --tsc`);
-        await execPromise(baseProjectDir, 'npm i --save-dev nativescript-dev-webpack');
+        await execPromise(testDirectory, `tns create ${name} --template tns-template-blank-ng`);
         await execPromise(baseProjectDir, 'npm i');
         await execPromise(baseProjectDir, 'tns platform add android');
         await execPromise(baseProjectDir, 'tns platform add ios');
