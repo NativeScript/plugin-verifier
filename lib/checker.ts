@@ -34,7 +34,8 @@ async function _setup(out: OutputModel) {
     out.tnsVersion = tnsVersion.trim();
     out.nodeVersion = process.version;
     out.npmVersion = npmVersion.trim();
-
+    await execPromise('.', 'tns accept eula', true) as string;
+    await execPromise('.', 'tns config apply test --apiVersion test', true) as string;
     await ProjectService.setup();
 }
 
@@ -59,7 +60,7 @@ export async function run() {
 
         // Test if the plugin builds when added to an app
         await ProjectService.prepareProject(plugin);
-        const actions = ['testWebpack', 'testBuild', 'testSnapshot']; // removed for speed , 'testUglify', 'testAot'];
+        const actions = ['testWebpack'];//, 'testBuild', 'testSnapshot', 'testUglify', 'testAot'];
         const result: ResultsInterface = {
             name: plugin.name
         };
