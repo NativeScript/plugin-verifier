@@ -11,8 +11,9 @@ const testProject = 'baseNG';
 const testProjectOriginalSuffix = '_original';
 
 export namespace ProjectService {
-
-    export async function setup() {
+    export let cloudEnabled = false;
+    export async function setup(cloud: boolean) {
+        cloudEnabled = cloud;
         if (existsSync(testDirectory)) {
             await _removeDirectory(testDirectory);
         }
@@ -103,11 +104,11 @@ export namespace ProjectService {
     async function _buildProject(projectName: string, platform: string, options: string) {
         Logger.debug(`building project for ${platform} ...`);
         const cwd = path.join(testDirectory, projectName);
-        if (platform === 'ios') {
-            options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\ Developer\ Dragon\ Telerikov\ \(GNKAEXW8YQ\).p12 --certificatePassword 1';
+        if (platform === 'ios' && cloudEnabled) {
+            options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\\ Developer\\ Dragon\\ Telerikov\\ \\(GNKAEXW8YQ\\).p12 --certificatePassword 1';
         }
-
-        const result = await execPromise(cwd, `tns cloud build ${platform} --accountId 1 ${options}`);
+        const command = cloudEnabled ? `tns cloud build ${platform} --accountId 1 ${options}` : `tns build ${platform} ${options}`;
+        const result = await execPromise(cwd, command);
         return result;
     }
 
@@ -180,9 +181,12 @@ export namespace ProjectService {
 
     async function _renameTestProject() {
         return new Promise((resolve, reject) => {
-            rename(path.join(testDirectory, testProject), path.join(testDirectory, testProject + testProjectOriginalSuffix), err => {
-                return err ? reject(err) : resolve();
-            });
+            setTimeout(() => {
+                rename(path.join(testDirectory, testProject), path.join(testDirectory, testProject + testProjectOriginalSuffix), err => {
+                    return err ? reject(err) : resolve();
+                });
+            }, 2000);
+
         });
     }
 

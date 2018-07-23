@@ -34,9 +34,17 @@ async function _setup(out: OutputModel) {
     out.tnsVersion = tnsVersion.trim();
     out.nodeVersion = process.version;
     out.npmVersion = npmVersion.trim();
-    await execPromise('.', 'tns accept eula', true) as string;
-    await execPromise('.', 'tns config apply test --apiVersion test', true) as string;
-    await ProjectService.setup();
+    const args = process.argv;
+    const user = args.length > 4 ? args[4] : '';
+    const pass = args.length > 5 ? args[5] : '';
+    const cloudEnabled = !!(user && pass);
+    if (cloudEnabled) {
+        await execPromise('.', 'tns extension install nativescript-cloud', true) as string;
+        await execPromise('.', 'tns accept eula', true) as string;
+        await execPromise('.', 'tns config apply test --apiVersion test', true) as string;
+        await execPromise('.', `tns dev-login ${user} ${pass}`, true) as string;
+    }
+    await ProjectService.setup(cloudEnabled);
 }
 
 export async function run() {
@@ -60,7 +68,7 @@ export async function run() {
 
         // Test if the plugin builds when added to an app
         await ProjectService.prepareProject(plugin);
-        const actions = ['testWebpack'];//, 'testBuild', 'testSnapshot', 'testUglify', 'testAot'];
+        const actions = ['testWebpack', 'testBuild', 'testSnapshot']; // removed for speed , 'testUglify', 'testAot'];
         const result: ResultsInterface = {
             name: plugin.name
         };

@@ -33,7 +33,7 @@ export function execPromise(cwd: string, command: string, returnOutput = false) 
         });
         cp.stderr.on('data', function (data) {
             if (!hasError) {
-                Logger.error(`error while executing ${command}:`);
+                Logger.error(`plugin-verifier error output for ${command}:`);
                 hasError = true;
             }
             Logger.error(data.toString());
