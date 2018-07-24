@@ -11,8 +11,9 @@ const testProject = 'baseNG';
 const testProjectOriginalSuffix = '_original';
 
 export namespace ProjectService {
-
-    export async function setup() {
+    export let cloudEnabled = false;
+    export async function setup(cloud: boolean) {
+        cloudEnabled = cloud;
         if (existsSync(testDirectory)) {
             await _removeDirectory(testDirectory);
         }
@@ -44,41 +45,56 @@ export namespace ProjectService {
     }
 
     export async function testWebpack(plugin: MarketplaceService.PluginModel) {
-        return await testPlugin(plugin, '--bundle');
+        return await testPlugin(plugin, {
+            android: '--bundle',
+            ios: '--bundle'
+        });
     }
 
     export async function testSnapshot(plugin: MarketplaceService.PluginModel) {
-        return await testPlugin(plugin, '--bundle --release --env.snapshot --key-store-path ~/.android/debug.keystore --key-store-password android --key-store-alias androiddebugkey --key-store-alias-password android');
+        const signKeystore = cloudEnabled ? '../../debug.p12' : '~/.android/debug.keystore';
+        return await testPlugin(plugin, {
+            android: `--bundle --release --env.snapshot --key-store-path ${signKeystore} --key-store-password android --key-store-alias androiddebugkey --key-store-alias-password android`
+        });
     }
 
     export async function testUglify(plugin: MarketplaceService.PluginModel) {
-        return await testPlugin(plugin, '--bundle --env.uglify');
+        return await testPlugin(plugin, {
+            android: '--bundle --env.uglify',
+            ios: '--bundle --env.uglify'
+        });
     }
 
     export async function testAot(plugin: MarketplaceService.PluginModel) {
-        return await testPlugin(plugin, '--bundle --env.aot');
+        return await testPlugin(plugin, {
+            android: '--bundle --env.aot',
+            ios: '--bundle --env.aot'
+        });
     }
 
     export async function testBuild(plugin: MarketplaceService.PluginModel) {
-        return await testPlugin(plugin, '');
+        return await testPlugin(plugin, {
+            android: ' ',
+            ios: ' '
+        });
     }
 
-    async function testPlugin(plugin: MarketplaceService.PluginModel, options: string) {
+    async function testPlugin(plugin: MarketplaceService.PluginModel, options: { android?: string, ios?: string }) {
         const result = { android: false, ios: false };
         let skipBuild = false;
         try {
             skipBuild = !plugin.badges.androidVersion && plugin.badges.iosVersion;
-            if (!skipBuild) {
-                result.android = !!(await _buildProject(testProject, 'android', options));
+            if (!skipBuild && options.android) {
+                result.android = !!(await _buildProject(testProject, 'android', options.android));
             } else {
-                Logger.error('Skipping android build! Plugin only has ios support.');
+                Logger.error('Skipping android build! Plugin only has ios support or no options supplied.');
             }
 
             skipBuild = !plugin.badges.iosVersion && plugin.badges.androidVersion;
-            if (!skipBuild) {
-                result.ios = !!(await _buildProject(testProject, 'ios', options));
+            if (!skipBuild && options.ios) {
+                result.ios = !!(await _buildProject(testProject, 'ios', options.ios));
             } else {
-                Logger.error('Skipping ios build! Plugin only has android support.');
+                Logger.error('Skipping ios build! Plugin only has android support or no options supplied.');
             }
         } catch (errExec) {
             Logger.error(JSON.stringify(errExec));
@@ -89,7 +105,11 @@ export namespace ProjectService {
     async function _buildProject(projectName: string, platform: string, options: string) {
         Logger.debug(`building project for ${platform} ...`);
         const cwd = path.join(testDirectory, projectName);
-        const result = await execPromise(cwd, `tns build ${platform} ${options}`);
+        if (platform === 'ios' && cloudEnabled) {
+            options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\\ Developer\\ Dragon\\ Telerikov\\ \\(GNKAEXW8YQ\\).p12 --certificatePassword 1';
+        }
+        const command = cloudEnabled ? `tns cloud build ${platform} --accountId 1 ${options}` : `tns build ${platform} ${options}`;
+        const result = await execPromise(cwd, command);
         return result;
     }
 
@@ -162,9 +182,12 @@ export namespace ProjectService {
 
     async function _renameTestProject() {
         return new Promise((resolve, reject) => {
-            rename(path.join(testDirectory, testProject), path.join(testDirectory, testProject + testProjectOriginalSuffix), err => {
-                return err ? reject(err) : resolve();
-            });
+            setTimeout(() => {
+                rename(path.join(testDirectory, testProject), path.join(testDirectory, testProject + testProjectOriginalSuffix), err => {
+                    return err ? reject(err) : resolve();
+                });
+            }, 2000);
+
         });
     }
 

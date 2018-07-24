@@ -1,6 +1,6 @@
 import { MarketplaceService } from './marketplace.service';
 import { ProjectService } from './project.service';
-import { writeFileSync } from 'fs';
+import { writeFileSync, unlinkSync, existsSync } from 'fs';
 import { execPromise } from './execPromise';
 import { Logger } from './log.service';
 
@@ -34,8 +34,22 @@ async function _setup(out: OutputModel) {
     out.tnsVersion = tnsVersion.trim();
     out.nodeVersion = process.version;
     out.npmVersion = npmVersion.trim();
-
-    await ProjectService.setup();
+    const args = process.argv;
+    const user = args.length > 4 ? args[4] : '';
+    const pass = args.length > 5 ? args[5] : '';
+    const cloudEnabled = !!(user && pass);
+    if (cloudEnabled) {
+        await execPromise('.', 'tns extension install nativescript-cloud');
+        await execPromise('.', 'tns accept eula');
+        await execPromise('.', 'tns config apply test --apiVersion test');
+        await execPromise('.', `tns dev-login ${user} ${pass}`);
+        // setup android signing
+        if (existsSync('debug.p12')) {
+            unlinkSync('debug.p12');
+        }
+        await execPromise('.', 'echo android | keytool -importkeystore -srckeystore ~/.android/debug.keystore -destkeystore debug.p12 -srcstoretype JKS -deststoretype PKCS12 -deststorepass android -srcalias androiddebugkey -destalias androiddebugkey');
+    }
+    await ProjectService.setup(cloudEnabled);
 }
 
 export async function run() {
