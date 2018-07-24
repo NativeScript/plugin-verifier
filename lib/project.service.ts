@@ -52,8 +52,9 @@ export namespace ProjectService {
     }
 
     export async function testSnapshot(plugin: MarketplaceService.PluginModel) {
+        const signKeystore = cloudEnabled ? '../../debug.p12' : '~/.android/debug.keystore';
         return await testPlugin(plugin, {
-            android: '--bundle --release --env.snapshot --key-store-path ~/.android/debug.keystore --key-store-password android --key-store-alias androiddebugkey --key-store-alias-password android'
+            android: `--bundle --release --env.snapshot --key-store-path ${signKeystore} --key-store-password android --key-store-alias androiddebugkey --key-store-alias-password android`
         });
     }
 
