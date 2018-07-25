@@ -27,7 +27,7 @@ class OutputModel {
 }
 
 async function _setup(out: OutputModel) {
-    Logger.debug('running setup...');
+    Logger.log('running setup...');
     const tnsVersion: string = await execPromise('.', 'tns --version', true) as string;
     const npmVersion = await execPromise('.', 'npm --version', true) as string;
     out.time = new Date().getTime();
@@ -42,7 +42,7 @@ async function _setup(out: OutputModel) {
         await execPromise('.', 'tns extension install nativescript-cloud');
         await execPromise('.', 'tns accept eula');
         await execPromise('.', 'tns config apply test --apiVersion test');
-        await execPromise('.', `tns dev-login ${user} ${pass}`);
+        Logger.log(await execPromise('.', `tns dev-login ${user} ${pass}`, true) as string);
         // setup android signing
         if (existsSync('debug.p12')) {
             unlinkSync('debug.p12');

@@ -70,7 +70,7 @@ export namespace GithubService {
 
     async function _prepareDemoProject(cwd: string, name: string) {
         // TODO: run 'tns update' / detect and build webpack
-        Logger.debug(`preparing project in ${cwd}...`);
+        Logger.log(`preparing project in ${cwd}...`);
 
         // replace plugin version in package.json with latest(*)
         const pkgFilePath = path.join(cwd, 'package.json');
@@ -110,20 +110,20 @@ export namespace GithubService {
     }
 
     async function _buildProject(cwd: string, platform: string) {
-        Logger.debug(`building project in ${cwd} for ${platform}...`);
+        Logger.log(`building project in ${cwd} for ${platform}...`);
         const result = await execPromise(cwd, `tns build ${platform}`);
         return result;
     }
 
     async function _cloneProject(repositoryUrl: string, name: string) {
-        Logger.debug(`cloning into ${name} ...`);
+        Logger.log(`cloning into ${name} ...`);
         await execPromise(testDirectory, `git clone ${repositoryUrl} ${name}`);
     }
 
     async function _checkTestDirectory() {
         if (existsSync(testDirectory)) {
             return new Promise((resolve, reject) => {
-                Logger.debug(`removing ${testDirectory} project root`);
+                Logger.log(`removing ${testDirectory} project root`);
                 rimraf(testDirectory, errR => {
                     if (errR) {
                         return reject(errR);
@@ -139,7 +139,7 @@ export namespace GithubService {
     }
 
     async function _createTestDirectory() {
-        Logger.debug(`creating ${testDirectory} project root`);
+        Logger.log(`creating ${testDirectory} project root`);
         return new Promise((resolve, reject) => {
             mkdir(testDirectory, errM => {
                 return errM ? reject(errM) : resolve();

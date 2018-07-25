@@ -9,6 +9,18 @@ import { execPromise } from './execPromise';
 const testDirectory = 'test';
 const testProject = 'baseNG';
 const testProjectOriginalSuffix = '_original';
+const exceptions = {
+    'nativescript-plugin-google-places': {
+        file: 'google-places.config.json',
+        content: `{
+            "ios_key": "ios_key",
+            "android_key": "android_key",
+            "browser_key": "browser_key",
+            "location": true,
+            "images": true
+        }`
+    }
+};
 
 export namespace ProjectService {
     export let cloudEnabled = false;
@@ -103,7 +115,7 @@ export namespace ProjectService {
     }
 
     async function _buildProject(projectName: string, platform: string, options: string) {
-        Logger.debug(`building project for ${platform} ...`);
+        Logger.log(`building project for ${platform} ...`);
         const cwd = path.join(testDirectory, projectName);
         if (platform === 'ios' && cloudEnabled) {
             options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\\ Developer\\ Dragon\\ Telerikov\\ \\(GNKAEXW8YQ\\).p12 --certificatePassword 1';
@@ -116,8 +128,18 @@ export namespace ProjectService {
     async function _installPlugin(plugin: MarketplaceService.PluginModel, projectName: string) {
         const name = plugin.name;
         const isDev = name && name.indexOf('-dev-') !== -1;
-        Logger.debug(`installing ${name} plugin ...`);
+        Logger.log(`installing ${name} plugin ...`);
         const cwd = path.join(testDirectory, projectName);
+
+        if (exceptions[name]) {
+            try {
+                Logger.log(`Applying plugin exception for ${name}`);
+                writeFileSync(path.join(cwd, exceptions[name].file), exceptions[name].content, 'utf8');
+            } catch (ex) {
+                Logger.log('Error when applying plugin exception: ' + ex.message);
+            }
+        }
+
         let command = `tns plugin add ${name}`;
         if (isDev) {
             // dev plugin (e.g. nativescript-dev-typescript)
@@ -192,7 +214,7 @@ export namespace ProjectService {
     }
 
     async function _createProject(name: string) {
-        Logger.debug(`creating project ${name} ...`);
+        Logger.log(`creating project ${name} ...`);
         const baseProjectDir = path.join(testDirectory, name);
         await execPromise(testDirectory, `tns create ${name} --template tns-template-blank-ng`);
         await execPromise(baseProjectDir, 'npm i');
@@ -202,7 +224,7 @@ export namespace ProjectService {
 
     async function _removeDirectory(name: string) {
         return new Promise((resolve, reject) => {
-            Logger.debug(`removing ${name} project root`);
+            Logger.log(`removing ${name} project root`);
             rimraf(name, errR => {
                 return errR ? reject(errR) : resolve();
             });
@@ -210,7 +232,7 @@ export namespace ProjectService {
     }
 
     async function _createTestDirectory() {
-        Logger.debug(`creating ${testDirectory} project root`);
+        Logger.log(`creating ${testDirectory} project root`);
         return new Promise((resolve, reject) => {
             mkdir(testDirectory, errM => {
                 return errM ? reject(errM) : resolve();
