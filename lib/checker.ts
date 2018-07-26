@@ -70,6 +70,10 @@ export async function run() {
     for (let index = 0; index < plugins.length; index++) {
         const plugin = plugins[index];
         Logger.log(`Start check ${plugin.name}`);
+        if (plugin.isDeprecated) {
+            Logger.log('Plugin is deprecated. Skipping.');
+            continue;
+        }
 
         // Test if the plugin builds when added to an app
         await ProjectService.prepareProject(plugin);

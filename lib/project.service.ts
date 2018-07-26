@@ -39,7 +39,7 @@ export namespace ProjectService {
             await _copyTestProject(testProject);
             await _installPlugin(plugin, testProject);
         } catch (errExec) {
-            Logger.error(JSON.stringify(errExec));
+            Logger.error('Error while preparing project:' + errExec && errExec.message);
         }
     }
 
@@ -52,7 +52,7 @@ export namespace ProjectService {
             });
             await _removeDirectory(path.join(testDirectory, testProject));
         } catch (errExec) {
-            Logger.error(JSON.stringify(errExec));
+            Logger.error('Error while cleaning project:' + errExec && errExec.message);
         }
     }
 
@@ -95,21 +95,21 @@ export namespace ProjectService {
         const result = { android: false, ios: false };
         let skipBuild = false;
         try {
-            skipBuild = !plugin.badges.androidVersion && plugin.badges.iosVersion;
+            skipBuild = !plugin.badges || (!plugin.badges.androidVersion && plugin.badges.iosVersion);
             if (!skipBuild && options.android) {
                 result.android = !!(await _buildProject(testProject, 'android', options.android));
             } else {
                 Logger.error('Skipping android build! Plugin only has ios support or no options supplied.');
             }
 
-            skipBuild = !plugin.badges.iosVersion && plugin.badges.androidVersion;
+            skipBuild = !plugin.badges || (!plugin.badges.iosVersion && plugin.badges.androidVersion);
             if (!skipBuild && options.ios) {
                 result.ios = !!(await _buildProject(testProject, 'ios', options.ios));
             } else {
                 Logger.error('Skipping ios build! Plugin only has android support or no options supplied.');
             }
         } catch (errExec) {
-            Logger.error(JSON.stringify(errExec));
+            Logger.error('Error while building project:' + errExec && errExec.message);
         }
         return result;
     }
@@ -144,7 +144,7 @@ export namespace ProjectService {
         if (isDev) {
             // dev plugin (e.g. nativescript-dev-typescript)
             command = `npm i ${name} --save-dev`;
-        } else if (!plugin.badges.androidVersion && !plugin.badges.iosVersion) {
+        } else if (!plugin.badges || (!plugin.badges.androidVersion && !plugin.badges.iosVersion)) {
             // regular (not nativescript specific) plugin
             command = `npm i ${name} --save`;
         }
@@ -173,7 +173,7 @@ export namespace ProjectService {
         try {
             const mainTsPath = path.join(appRoot, 'app', 'home', 'home.component.ts');
             let mainTs = readFileSync(mainTsPath, 'utf8');
-            if (plugin.badges.typings) {
+            if (plugin.badges && plugin.badges.typings) {
                 mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
             } else {
                 mainTs = `const testPlugin = require('${name}');\n` + mainTs;
