@@ -10,6 +10,9 @@ const testDirectory = 'test';
 const testProject = 'baseNG';
 const testProjectOriginalSuffix = '_original';
 const exceptions = {
+    'kinvey-nativescript-sdk': {
+        command: 'npm i rxjs-compat'
+    },
     'nativescript-plugin-google-places': {
         file: 'google-places.config.json',
         content: `{
@@ -184,7 +187,11 @@ export namespace ProjectService {
         if (exceptions[name]) {
             try {
                 Logger.log(`Applying plugin exception for ${name}`);
-                writeFileSync(path.join(cwd, exceptions[name].file), exceptions[name].content, 'utf8');
+                if (exceptions[name].file) {
+                    writeFileSync(path.join(cwd, exceptions[name].file), exceptions[name].content, 'utf8');
+                } else if (exceptions[name].command) {
+                    await execPromise(cwd, exceptions[name].command);
+                }
             } catch (ex) {
                 Logger.log('Error when applying plugin exception: ' + ex.message);
             }
