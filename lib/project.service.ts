@@ -19,6 +19,51 @@ const exceptions = {
             "location": true,
             "images": true
         }`
+    },
+    'nativescript-push-notifications': {
+        file: 'app/App_Resources/Android/google-services.json',
+        content: `{
+            "project_info": {
+              "project_number": "424050927453",
+              "firebase_url": "https://pptest-53916.firebaseio.com",
+              "project_id": "pptest-53916",
+              "storage_bucket": "pptest-53916.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:424050927453:android:21d2dd8987e1e3d1",
+                  "android_client_info": {
+                    "package_name": "org.nativescript.baseNG"
+                  }
+                },
+                "oauth_client": [
+                  {
+                    "client_id": "424050927453-o7gv6bcmknujjoaaoa5r4d452cutb9jf.apps.googleusercontent.com",
+                    "client_type": 3
+                  }
+                ],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyDr3fqH7Z8-vhBNpAges_KFTA7oOoylGvU"
+                  }
+                ],
+                "services": {
+                  "analytics_service": {
+                    "status": 1
+                  },
+                  "appinvite_service": {
+                    "status": 1,
+                    "other_platform_oauth_client": []
+                  },
+                  "ads_service": {
+                    "status": 2
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }`
     }
 };
 
@@ -57,6 +102,7 @@ export namespace ProjectService {
     }
 
     export async function testWebpack(plugin: MarketplaceService.PluginModel) {
+        Logger.log('WEBPACK BUILD:');
         return await testPlugin(plugin, {
             android: '--bundle',
             ios: '--bundle'
@@ -64,6 +110,7 @@ export namespace ProjectService {
     }
 
     export async function testSnapshot(plugin: MarketplaceService.PluginModel) {
+        Logger.log('SNAPSHOT BUILD:');
         const signKeystore = cloudEnabled ? '../../debug.p12' : '~/.android/debug.keystore';
         return await testPlugin(plugin, {
             android: `--bundle --release --env.snapshot --key-store-path ${signKeystore} --key-store-password android --key-store-alias androiddebugkey --key-store-alias-password android`
@@ -71,6 +118,7 @@ export namespace ProjectService {
     }
 
     export async function testUglify(plugin: MarketplaceService.PluginModel) {
+        Logger.log('UGLIFY BUILD:');
         return await testPlugin(plugin, {
             android: '--bundle --env.uglify',
             ios: '--bundle --env.uglify'
@@ -78,6 +126,7 @@ export namespace ProjectService {
     }
 
     export async function testAot(plugin: MarketplaceService.PluginModel) {
+        Logger.log('AOT BUILD:');
         return await testPlugin(plugin, {
             android: '--bundle --env.aot',
             ios: '--bundle --env.aot'
@@ -85,6 +134,7 @@ export namespace ProjectService {
     }
 
     export async function testBuild(plugin: MarketplaceService.PluginModel) {
+        Logger.log('NORMAL BUILD:');
         return await testPlugin(plugin, {
             android: ' ',
             ios: ' '
