@@ -34,6 +34,7 @@ async function _setup(out: OutputModel) {
     out.tnsVersion = tnsVersion.trim();
     out.nodeVersion = process.version;
     out.npmVersion = npmVersion.trim();
+    Logger.log(`Environment: ${JSON.stringify(out, null, 4)}`);
     const args = process.argv;
     const user = args.length > 4 ? args[4] : '';
     const pass = args.length > 5 ? args[5] : '';
