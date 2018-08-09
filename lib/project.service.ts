@@ -13,6 +13,16 @@ const exceptions = {
     'kinvey-nativescript-sdk': {
         command: 'npm i rxjs-compat'
     },
+    'nativescript-plugin-gplaces': {
+        file: 'google-places.config.json',
+        content: `{
+            "ios_key": "ios_key",
+            "android_key": "android_key",
+            "browser_key": "browser_key",
+            "location": true,
+            "images": true
+        }`
+    },
     'nativescript-plugin-google-places': {
         file: 'google-places.config.json',
         content: `{
