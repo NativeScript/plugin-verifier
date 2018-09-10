@@ -13,6 +13,9 @@ const exceptions = {
     'kinvey-nativescript-sdk': {
         command: 'npm i rxjs-compat'
     },
+    'nativescript-fingerprint-auth': {
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 23/g\' app/App_Resources/Android/app.gradle'
+    },
     'nativescript-plugin-gplaces': {
         file: 'google-places.config.json',
         content: `{
@@ -34,6 +37,7 @@ const exceptions = {
         }`
     },
     'nativescript-push-notifications': {
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' app/App_Resources/Android/app.gradle',
         file: 'app/App_Resources/Android/google-services.json',
         content: `{
             "project_info": {
@@ -199,7 +203,8 @@ export namespace ProjectService {
                 Logger.log(`Applying plugin exception for ${name}`);
                 if (exceptions[name].file) {
                     writeFileSync(path.join(cwd, exceptions[name].file), exceptions[name].content, 'utf8');
-                } else if (exceptions[name].command) {
+                }
+                if (exceptions[name].command) {
                     await execPromise(cwd, exceptions[name].command);
                 }
             } catch (ex) {
