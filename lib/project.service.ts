@@ -81,7 +81,10 @@ const exceptions = {
             ],
             "configuration_version": "1"
           }`
-    }
+    },
+    'nativescript-wikitude': {
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' app/App_Resources/Android/app.gradle'
+    },
 };
 
 export namespace ProjectService {
@@ -159,17 +162,18 @@ export namespace ProjectService {
     }
 
     async function testPlugin(plugin: MarketplaceService.PluginModel, options: { android?: string, ios?: string }) {
-        const result = { android: false, ios: false };
+        const result: { android?: boolean, ios?: boolean } = {};
+        const isDarwin = process.platform === 'darwin';
         let skipBuild = false;
         try {
-            skipBuild = !plugin.badges || (!plugin.badges.androidVersion && plugin.badges.iosVersion);
+            skipBuild = isDarwin || !plugin.badges || (!plugin.badges.androidVersion && plugin.badges.iosVersion);
             if (!skipBuild && options.android) {
                 result.android = !!(await _buildProject(testProject, 'android', options.android));
             } else {
                 Logger.error('Skipping android build! Plugin only has ios support or no options supplied.');
             }
 
-            skipBuild = !plugin.badges || (!plugin.badges.iosVersion && plugin.badges.androidVersion);
+            skipBuild = !isDarwin || !plugin.badges || (!plugin.badges.iosVersion && plugin.badges.androidVersion);
             if (!skipBuild && options.ios) {
                 result.ios = !!(await _buildProject(testProject, 'ios', options.ios));
             } else {
@@ -185,7 +189,8 @@ export namespace ProjectService {
         Logger.log(`building project for ${platform} ...`);
         const cwd = path.join(testDirectory, projectName);
         if (platform === 'ios' && cloudEnabled) {
-            options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\\ Developer\\ Dragon\\ Telerikov\\ \\(GNKAEXW8YQ\\).p12 --certificatePassword 1';
+            // TODO: change this after it expires in August 2019
+            options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\\ Developer\\ Dragon\\ Telerikov\\ \\(R58QAA9NR8\\).p12 --certificatePassword 1';
         }
         const command = cloudEnabled ? `tns cloud build ${platform} --accountId 1 ${options}` : `tns build ${platform} ${options}`;
         const result = await execPromise(cwd, command);
@@ -231,7 +236,7 @@ export namespace ProjectService {
         const name = plugin.name;
 
         try {
-            const packagePath = path.join(appRoot, 'app', 'package.json');
+            const packagePath = path.join(appRoot, 'src', 'package.json');
             let packageJson = readFileSync(packagePath, 'utf8');
             packageJson = packageJson.replace('"android": {', `"android": {\n"requireModules": ["${name}"],`);
             if (packageJson.indexOf(name) === -1) {
@@ -243,7 +248,7 @@ export namespace ProjectService {
         }
 
         try {
-            const mainTsPath = path.join(appRoot, 'app', 'home', 'home.component.ts');
+            const mainTsPath = path.join(appRoot, 'src', 'app', 'home', 'home.component.ts');
             let mainTs = readFileSync(mainTsPath, 'utf8');
             if (plugin.badges && plugin.badges.typings) {
                 mainTs = `import * as testPlugin from '${name}';\n` + mainTs;
@@ -263,10 +268,12 @@ export namespace ProjectService {
     async function _copyTestProject(name: string) {
         const newPath = path.join(testDirectory, name);
         if (existsSync(newPath)) {
+            Logger.log('Removing old test directory...');
             await _removeDirectory(newPath);
         }
 
         ncp.limit = 16;
+        Logger.log('Creating new test directory...');
         return new Promise((resolve, reject) => {
             ncp(path.join(testDirectory, testProject + testProjectOriginalSuffix), newPath, err => {
                 return err ? reject(err) : resolve();
