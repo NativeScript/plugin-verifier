@@ -268,12 +268,12 @@ export namespace ProjectService {
     async function _copyTestProject(name: string) {
         const newPath = path.join(testDirectory, name);
         if (existsSync(newPath)) {
-            Logger.log('Removing old test directory...');
+            Logger.log('Removing old test project...');
             await _removeDirectory(newPath);
         }
 
         ncp.limit = 16;
-        Logger.log('Creating new test directory...');
+        Logger.log('Copying test project to new directory...');
         return new Promise((resolve, reject) => {
             ncp(path.join(testDirectory, testProject + testProjectOriginalSuffix), newPath, err => {
                 return err ? reject(err) : resolve();
