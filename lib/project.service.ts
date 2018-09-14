@@ -189,8 +189,12 @@ export namespace ProjectService {
         Logger.log(`building project for ${platform} ...`);
         const cwd = path.join(testDirectory, projectName);
         if (platform === 'ios') {
-            // TODO: change this after it expires in August 2019
-            options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\\ Developer\\ Dragon\\ Telerikov\\ \\(R58QAA9NR8\\).p12 --certificatePassword 1';
+            if (cloudEnabled) {
+                // TODO: change this after it expires in August 2019
+                options += ' --provision /tns-official/CodeSign/ios/Icenium_QA_Development.mobileprovision --certificate /tns-official/CodeSign/ios/iPhone\\ Developer\\ Dragon\\ Telerikov\\ \\(R58QAA9NR8\\).p12 --certificatePassword 1';
+            } else {
+                options += ' --release --for-device --provision $PROVISIONING';
+            }
         }
         const command = cloudEnabled ? `tns cloud build ${platform} --accountId 1 ${options}` : `tns build ${platform} ${options}`;
         const result = await execPromise(cwd, command);
