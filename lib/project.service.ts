@@ -14,7 +14,7 @@ const exceptions = {
         command: 'npm i rxjs-compat'
     },
     'nativescript-fingerprint-auth': {
-        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 23/g\' app/App_Resources/Android/app.gradle'
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 23/g\' App_Resources/Android/app.gradle'
     },
     'nativescript-plugin-gplaces': {
         file: 'google-places.config.json',
@@ -37,8 +37,8 @@ const exceptions = {
         }`
     },
     'nativescript-push-notifications': {
-        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' app/App_Resources/Android/app.gradle',
-        file: 'app/App_Resources/Android/google-services.json',
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' App_Resources/Android/app.gradle',
+        file: 'App_Resources/Android/google-services.json',
         content: `{
             "project_info": {
               "project_number": "424050927453",
@@ -82,8 +82,11 @@ const exceptions = {
             "configuration_version": "1"
           }`
     },
+    'nativescript-rating-dialog': {
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' App_Resources/Android/app.gradle'
+    },
     'nativescript-wikitude': {
-        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' app/App_Resources/Android/app.gradle'
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' App_Resources/Android/app.gradle'
     },
 };
 
