@@ -308,8 +308,8 @@ export namespace ProjectService {
         const baseProjectDir = path.join(testDirectory, name);
         await execPromise(testDirectory, `tns create ${name} --template tns-template-blank-ng`);
         await execPromise(baseProjectDir, 'npm i');
-        await execPromise(baseProjectDir, 'tns platform add android');
-        await execPromise(baseProjectDir, 'tns platform add ios');
+        await execPromise(baseProjectDir, 'tns platform add android@next');
+        await execPromise(baseProjectDir, 'tns platform add ios@next');
     }
 
     async function _removeDirectory(name: string) {
