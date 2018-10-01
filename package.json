@@ -17,7 +17,7 @@
     },
     "devDependencies": {
         "@types/node": "10.1.4",
-        "nativescript": "*",
+        "nativescript": "next",
         "typescript": "^2.9.2"
     }
 }

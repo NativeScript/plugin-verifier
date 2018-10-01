@@ -78,7 +78,7 @@ export async function run() {
 
         // Test if the plugin builds when added to an app
         await ProjectService.prepareProject(plugin);
-        const actions = ['testWebpack', 'testBuild', 'testSnapshot']; // removed for speed , 'testUglify', 'testAot'];
+        const actions = ['testBuild'];
         const result: ResultsInterface = {
             name: plugin.name
         };
