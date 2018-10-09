@@ -19,6 +19,9 @@ const exceptions = {
     'nativescript-fingerprint-auth': {
         command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 23/g\' App_Resources/Android/app.gradle'
     },
+    'nativescript-live-engage': {
+        command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' App_Resources/Android/app.gradle'
+    },
     'nativescript-plugin-gplaces': {
         file: 'google-places.config.json',
         content: `{
