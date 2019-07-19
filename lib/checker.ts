@@ -78,7 +78,7 @@ export async function run() {
 
         // Test if the plugin builds when added to an app
         await ProjectService.prepareProject(plugin);
-        const actions = ['testWebpack', 'testBuild', 'testSnapshot']; // removed for speed , 'testUglify', 'testAot'];
+        const actions = ['testBuild']; // removed for speed , 'testSnapshot', 'testUglify', 'testAot'];
         const result: ResultsInterface = {
             name: plugin.name
         };
@@ -92,6 +92,8 @@ export async function run() {
             result[resultName] = actionResult;
             result[resultName + 'Time'] = Math.round((endDate - startDate) / 1000);
         }
+        result.webpack = result.build;
+        result.webpackTime = result.buildTime;
 
         await ProjectService.cleanProject();
         results.push(result);
