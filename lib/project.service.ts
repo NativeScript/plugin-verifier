@@ -130,14 +130,6 @@ export namespace ProjectService {
         }
     }
 
-    export async function testWebpack(plugin: MarketplaceService.PluginModel) {
-        Logger.log('WEBPACK BUILD:');
-        return await testPlugin(plugin, {
-            android: '--bundle',
-            ios: '--bundle'
-        });
-    }
-
     export async function testSnapshot(plugin: MarketplaceService.PluginModel) {
         Logger.log('SNAPSHOT BUILD:');
         const signKeystore = cloudEnabled ? '../../debug.p12' : '~/.android/debug.keystore';
@@ -163,7 +155,7 @@ export namespace ProjectService {
     }
 
     export async function testBuild(plugin: MarketplaceService.PluginModel) {
-        Logger.log('NORMAL BUILD:');
+        Logger.log('NORMAL BUILD (Webpack+HMR):');
         return await testPlugin(plugin, {
             android: ' ',
             ios: ' '
