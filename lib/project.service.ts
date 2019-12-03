@@ -16,6 +16,9 @@ const exceptions = {
     'nativescript-azure-mobile-apps': {
         command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 19/g\' App_Resources/Android/app.gradle'
     },
+    'nativescript-dev-appium': {
+        command: 'export projectType=javascript && export TESTING_FRAMEWORK=mocha'
+    },
     'nativescript-fingerprint-auth': {
         command: 'sed -i -- \'s/defaultConfig ./defaultConfig {\\n    minSdkVersion 23/g\' App_Resources/Android/app.gradle'
     },
